@@ -1,41 +1,28 @@
-local Background = {}
+local Background = Engine.newItemClass{
+  name = 'Background',
+  MAX_ID = 100,
+  MAX_AMOUNT = 9999,
 
--- ==========================
--- =====   CLASS DATA   =====
--- ==========================
-Background.name = 'Background'
+  methods = {"render", "remove", "attach"}
+}
 
-Background.MAX_ID = 100
-Background.MAX_AMOUNT = 9999
+local animate = require("animate")
 
-local List = {}
-local class_mt = {__type = "background"}
+Background.permIDMaxLayer = 0
 
-
-
-Background.config = {}
+local array = Background.array
 local config = Background.config
-
-
-
-
-function Background.list()
-  local out = {}
-  for i = 1, #List do
-    table.insert(out, List[i])
-  end
-  return out
-end
-
-
-function Background.get(idx)
-  return List[idx]
-end
 
 
 function Background.register(conf)
   conf.name = Misc.default(conf.name, config[0].name)
-  conf.fillcolor = conf.fillcolor or {1, 1, 1, 1}
+
+  conf.fillcolor = Misc.default(conf.fillcolor, {1, 1, 1, 1})
+
+  conf.backgroundcreate = Misc.default(conf.backgroundcreate, function() end)
+  conf.backgroundupdate = Misc.default(conf.backgroundupdate, function() end)
+  conf.backgrounddraw = Misc.default(conf.backgrounddraw, function() end)
+
   conf.layers = {}
   
   config[conf.id] = conf
@@ -44,7 +31,9 @@ function Background.register(conf)
 end
 
 function Background.registerLayer(conf, layer)
-  layer.idx, id = (#conf.layers + 1), conf.id
+  Background.permIDMaxLayer = Background.permIDMaxLayer + 1
+
+  layer.idx, layer.permID, id = (#conf.layers + 1), Background.permIDMaxLayer, conf.id
   layer = Engine.config(Background, layer)
   conf.layers[layer.idx] = layer
   return layer
@@ -90,30 +79,40 @@ function Background.create(id, section, data)
     background.layers[idx] = layer
   end
   
-  --- Methods ---
-  background.render = Background.render
-  background.attach = Background.attach
+  for _, methodname in ipairs(Background.methods) do
+    background[methodname] = Background[methodname]
+  end
 
 
-  table.insert(List, background)
+  Background.add(background)
+
+  conf.backgroundcreate(background)
+  Engine.callEvent('backgroundcreate', background)
+
+  setmetatable(background, Background.mt)
 
   return background
 end
 
+function Background.remove(item)
+  Background.sub(item)
+end
 
+function Background.renderLayer(layer)
+  local conf = layer.config
+  
+  love.graphics.setColor(conf.color)
+  
+  for i = 1, layer.xamount do
+    for j = 1, layer.yamount do
+      love.graphics.draw(conf.texture, conf.quads[layer.variant][layer.frame], layer.x + conf.texturewidth*(i - 1) + conf.xoffset, layer.y + conf.textureheight*(j - 1) - conf.yoffset)
+    end
+  end
+end
 
 function Background.render(background)
   for idx = 1, #background.layers do
-    local layer = background.layers[idx]
-    local conf = layer.config
-
-    love.graphics.setColor(conf.color)
-
-    for i = 1, layer.xamount do
-      for j = 1, layer.yamount do
-        love.graphics.draw(conf.texture, conf.quads[layer.variant][layer.frame], layer.x + conf.texturewidth*(i - 1) + conf.xoffset, layer.y + conf.textureheight*(j - 1) - conf.yoffset)
-      end
-    end
+    Background.renderLayer(background.layers[idx])
   end
 end
 
@@ -129,64 +128,76 @@ function Background.update(dt)
     for idx, layer in ipairs(background.layers) do
       local conf = layer.config
 
-      layer.frametimer = layer.frametimer - 1
-      if layer.frametimer < 0 then
-        layer.frametimer = conf.framespeed
-        layer.frame = layer.frame + 1
-        if layer.frame > conf.frames then
-          layer.frame = 1
-        end
-      end
-
+      animate.updateItem(layer)
     end
 
-    -- background.config.backgroundupdate(background, dt)
-
+    background.config.backgroundupdate(background, dt)
   end
 end
+
+
+local function x_update(camera, layer)
+  local conf = layer.config
+  
+  if conf.xtype == 'bound' then
+    layer.x = camera.x + (camera.width - conf.texturewidth)*(layer.box.x - camera.x)/(camera.width - layer.box.width)
+  elseif conf.xtype == 'scroll' then
+    local xmove = conf.xscroll*(camera.x - layer.box.x) + conf.xspeed*Misc.frames()
+    if conf.xloop then
+      xmove = xmove % conf.texturewidth
+    end
+    layer.x = camera.x - xmove
+  end
+    
+  layer.xamount = ((conf.xloop and conf.xtype == 'scroll') and math.ceil(camera.width/conf.texturewidth) + 1) or 1
+end
+
+local function y_update(camera, layer)
+  local conf = layer.config
+  
+  if conf.ytype == 'bound' then
+    layer.y = camera.y + (camera.height - conf.textureheight)*(layer.box.y - camera.y)/(camera.height - layer.box.height)
+  elseif conf.ytype == 'scroll' then
+    local ymove 
+    if conf.yalign == 'top' then
+      ymove = conf.yscroll*(camera.y - layer.box.y) + conf.yspeed*Misc.frames()
+    elseif conf.yalign == 'bottom' then
+      ymove = conf.yscroll*((camera.y + camera.height) - (layer.box.y + layer.box.height)) + conf.yspeed*Misc.frames()
+    end
+    
+    if conf.yloop then
+      ymove = ymove % conf.textureheight
+    end
+  
+    if conf.yalign == 'top' then
+      layer.y = camera.y - ymove 
+    elseif conf.yalign == 'bottom' then
+      layer.y = (camera.y + camera.height) - ymove - conf.textureheight
+    end
+  end
+  
+  layer.yamount = ((conf.yloop and conf.ytype == 'scroll') and math.ceil(camera.height/conf.textureheight) + 1) or 1
+end
+
 
 function Background.scenedraw(camera)
   for _, background in ipairs(Background.list()) do
     for idx, layer in ipairs(background.layers) do
-      local conf = layer.config
       -- if background.section.idx == camera.section.idx then
 
-      if conf.xtype == 'bound' then
-        layer.x = camera.x + (camera.width - conf.texturewidth)*(layer.box.x - camera.x)/(camera.width - layer.box.width)
-      elseif conf.xtype == 'scroll' then
-        local xmove = conf.xscroll*(camera.x - layer.box.x) + conf.xspeed*Misc.frames()
-        if conf.xloop then
-          xmove = xmove % conf.texturewidth
-        end
-        layer.x = camera.x - xmove
-      end
-      
-      if conf.ytype == 'bound' then
-        layer.y = camera.y + (camera.height - conf.textureheight)*(layer.box.y - camera.y)/(camera.height - layer.box.height)
-      elseif conf.ytype == 'scroll' then
-        local ymove = conf.yscroll*((camera.y + camera.height) - (layer.box.y + layer.box.height)) + conf.yspeed*Misc.frames()
-        p(ymove, Player(1).x, Player(1).y - 18 - 32*layer.idx)
-        if conf.yloop then
-          ymove = ymove % conf.textureheight
-        end
-        layer.y = (camera.y + camera.height) - ymove - conf.textureheight
-      end
-      
-      layer.xamount = ((conf.xloop and conf.xtype == 'scroll') and math.ceil(camera.width/conf.texturewidth) + 1) or 1
-      layer.yamount = ((conf.yloop and conf.ytype == 'scroll') and math.ceil(camera.height/conf.textureheight) + 1) or 1
-      
-      love.graphics.setColor(background.config.fillcolor[1], background.config.fillcolor[2], background.config.fillcolor[3], background.config.fillcolor[4])
+      x_update(camera, layer)
+      y_update(camera, layer)
+
+      love.graphics.setColor(background.config.fillcolor)
       love.graphics.rectangle('fill', camera.x, camera.y, camera.width, camera.height)
       background:render(camera)
 
-      -- conf.backgrounddraw(background)
-      -- end
+      background.config.backgrounddraw(background)
     end
   end
 end
 
 
-setmetatable(Background, {__call = function(t, ...) return Background.get(...) end})
 
 return Background
 

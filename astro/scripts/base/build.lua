@@ -80,12 +80,8 @@ function Engine.build(path)
 
   local playercount = math.max(1, math.min(4, Player.amount()))
   local w, h = love.graphics.getWidth(), love.graphics.getHeight()
-  if playercount > 1 then
-    w = w/2
-  end
-  if playercount > 2 then
-    h = h/2
-  end
+  if playercount > 1 then w = w/2 end
+  if playercount > 2 then h = h/2 end
   for i = 1, playercount do
     local camera = Camera.create{widthscreen = w, heightscreen = h, xscreen = ((i - 1)%2)*(w), yscreen = math.floor((i - 1)/2)*h}
     camera:follow(Player(i))

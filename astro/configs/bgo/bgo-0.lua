@@ -1,6 +1,6 @@
 -- This file is used as the default if any value is left blank
 -- You can use this file to see what are all the global config values
--- Some blocks may have additional custom config values
+-- Some bgos may have additional custom config values
 
 --[[
   USAGE:

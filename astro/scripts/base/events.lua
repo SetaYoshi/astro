@@ -98,7 +98,7 @@ function Engine.load(arg, unfilteredArg)
     -- require() -- path to init file
 
 
-    local background = Background.create(1)
+    local background = Background.create(14)
     background:attach(Section(1))
     
   elseif LoadingMethod.type == 'edit' then
