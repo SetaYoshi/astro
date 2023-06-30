@@ -1,0 +1,1 @@
+﻿cmd /c copy /b love.exe+astro.love Astro.exe

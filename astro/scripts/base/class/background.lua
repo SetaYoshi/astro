@@ -35,6 +35,7 @@ end
 
 function Background.register(conf)
   conf.name = Misc.default(conf.name, config[0].name)
+  conf.fillcolor = conf.fillcolor or {1, 1, 1, 1}
   conf.layers = {}
   
   config[conf.id] = conf
@@ -73,6 +74,7 @@ function Background.create(id, section, data)
   for idx = 1, #conf.layers do
     local layer = {}
     
+    layer.idx = idx
     layer.config = conf.layers[idx]
 
     layer.variant = Misc.default(1)
@@ -109,7 +111,7 @@ function Background.render(background)
 
     for i = 1, layer.xamount do
       for j = 1, layer.yamount do
-        love.graphics.draw(conf.texture, conf.quads[layer.variant][layer.frame], layer.x + conf.texturewidth*(i - 1), layer.y + conf.textureheight*(j - 1))
+        love.graphics.draw(conf.texture, conf.quads[layer.variant][layer.frame], layer.x + conf.texturewidth*(i - 1) + conf.xoffset, layer.y + conf.textureheight*(j - 1) - conf.yoffset)
       end
     end
   end
@@ -152,19 +154,28 @@ function Background.scenedraw(camera)
       if conf.xtype == 'bound' then
         layer.x = camera.x + (camera.width - conf.texturewidth)*(layer.box.x - camera.x)/(camera.width - layer.box.width)
       elseif conf.xtype == 'scroll' then
-        layer.x = camera.x - ((conf.xscroll*(camera.x - layer.box.x) + conf.xspeed*Misc.frames()) % conf.texturewidth)
+        local xmove = conf.xscroll*(camera.x - layer.box.x) + conf.xspeed*Misc.frames()
+        if conf.xloop then
+          xmove = xmove % conf.texturewidth
+        end
+        layer.x = camera.x - xmove
       end
       
       if conf.ytype == 'bound' then
         layer.y = camera.y + (camera.height - conf.textureheight)*(layer.box.y - camera.y)/(camera.height - layer.box.height)
       elseif conf.ytype == 'scroll' then
-        layer.y = camera.y - ((conf.yscroll*(camera.y - layer.box.y) + conf.yspeed*Misc.frames()) % conf.textureheight)
+        local ymove = conf.yscroll*((camera.y + camera.height) - (layer.box.y + layer.box.height)) + conf.yspeed*Misc.frames()
+        p(ymove, Player(1).x, Player(1).y - 18 - 32*layer.idx)
+        if conf.yloop then
+          ymove = ymove % conf.textureheight
+        end
+        layer.y = (camera.y + camera.height) - ymove - conf.textureheight
       end
       
       layer.xamount = ((conf.xloop and conf.xtype == 'scroll') and math.ceil(camera.width/conf.texturewidth) + 1) or 1
       layer.yamount = ((conf.yloop and conf.ytype == 'scroll') and math.ceil(camera.height/conf.textureheight) + 1) or 1
       
-      love.graphics.setColor(conf.fillcolor[1], conf.fillcolor[2], conf.fillcolor[3], conf.fillcolor[4])
+      love.graphics.setColor(background.config.fillcolor[1], background.config.fillcolor[2], background.config.fillcolor[3], background.config.fillcolor[4])
       love.graphics.rectangle('fill', camera.x, camera.y, camera.width, camera.height)
       background:render(camera)
 

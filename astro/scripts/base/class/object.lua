@@ -5,7 +5,7 @@ local Object = {}
 -- ==========================
 Object.name = 'Object'
 
-Object.MAX_ID = 6
+Object.MAX_ID = 7
 Object.MAX_AMOUNT = 999999
 
 
@@ -90,12 +90,14 @@ function Object.create(objID, data)
   end
 
   if addToList then
-    local w, h = object.width, object.height
-    if object.config then
-      w, h = w or object.config.e_texturewidth, h or object.config.e_textureheight
+    if object.objID ~= 7 then
+      local w, h = object.width, object.height
+      if object.config then
+        w, h = w or object.config.e_texturewidth, h or object.config.e_textureheight
+      end
+      w, h = w or 32, h or 32
+      World:add(object, object.x, object.y, w, h)
     end
-    w, h = w or 32, h or 32
-    World:add(object, object.x, object.y, w, h)
     table.insert(List, object)
   end
 
@@ -133,8 +135,10 @@ function Object.scenedraw(camera)
   for idx, object in ipairs(Object.list()) do
     object:render()
 
+    if object.objID ~= 7 then
     local x,y,w,h = World:getRect(object)
     love.graphics.rectangle('line', x, y, w, h)
+    end
 
   end
 end

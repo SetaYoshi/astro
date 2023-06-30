@@ -6,6 +6,8 @@ local VFX = Engine.newItemClass{
   methods = {"render", "remove"}
 }
 
+local animate = require("animate")
+
 local array = VFX.array
 local config = VFX.config
 
@@ -86,16 +88,10 @@ function VFX.update(dt)
 
     local killEffect
 
-    if not conf.disableanimation then
-      vfx.frametimer = vfx.frametimer - 1
-      if vfx.frametimer < 0 then
-        vfx.frametimer = conf.framespeed
-        vfx.frame = vfx.frame + 1
-        if vfx.frame > conf.frames then
-          vfx.frame = 1
-          killEffect = (vfx.life == 0)
-        end
-      end
+    local old_frame = vfx.frame
+    animate.updateItem(vfx)
+    if old_frame == conf.frames and vfx.frame == 1 and vfx.life == 0 then
+      killEffect = true
     end
 
 

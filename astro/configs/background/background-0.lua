@@ -103,6 +103,14 @@ config:prop('yspeed', function(config)
   return 0
 end)
 
+config:prop('xoffset', function(config)
+  return 0
+end)
+
+config:prop('yoffset', function(config)
+  return 0
+end)
+
 
 -- Texture
 config:prop('fillcolor', function(config) 

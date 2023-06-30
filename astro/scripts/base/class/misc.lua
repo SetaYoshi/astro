@@ -256,19 +256,7 @@ function Misc.update(dt)
   p(uptime)
 end
 
-function Misc.updateAnimation(item)
-  local conf = item.config
 
-  item.frametimer = item.frametimer - 1
-  if item.frametimer < 0 then
-    item.frametimer = conf.framespeed
-    item.frame = item.frame + 1
-    if item.frame > conf.frames then
-      item.frame = 1
-    end
-  end
-
-end
   
 Engine.registerEvent('update', Misc.update)
 

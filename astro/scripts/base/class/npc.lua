@@ -6,6 +6,8 @@ local NPC = Engine.newItemClass{
   methods = {"render", "remove"}
 }
 
+local animate = require("animate")
+
 local array = NPC.array
 local config = NPC.config
 
@@ -66,9 +68,7 @@ function NPC.update()
   for _, npc in ipairs(array) do
     local conf = npc.config
 
-    if not conf.disableanimation then
-      Misc.updateAnimation(npc)
-    end
+    animate.updateItem(npc)
 
     conf.npcupdate(npc, dt)
   end

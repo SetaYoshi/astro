@@ -53,6 +53,7 @@ function Engine.newItemClass(args)
 
   setmetatable(class, {
     __call = function(t, ...) return class.get(...) end,
+    __len = function(t) return class.amount() end,
   })
 
 

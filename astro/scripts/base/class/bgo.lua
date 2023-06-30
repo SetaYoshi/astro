@@ -6,6 +6,8 @@ local BGO = Engine.newItemClass{
   methods = {"render", "remove"}
 }
 
+local animate = require("animate")
+
 local array = BGO.array
 local config = BGO.config
 
@@ -63,9 +65,7 @@ function BGO.update(dt)
   for _, bgo in ipairs(array) do
     local conf = bgo.config
 
-    if not conf.disableanimation then
-      Misc.updateAnimation(bgo)
-    end
+    animate.updateItem(bgo)
 
     conf.bgoupdate(bgo, dt)
   end

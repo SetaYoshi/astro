@@ -6,6 +6,8 @@ local Block = Engine.newItemClass{
   methods = {"render", "remove"}
 }
 
+local animate = require('animate')
+
 local array = Block.array
 local config = Block.config
 
@@ -74,9 +76,7 @@ function Block.update(dt)
   for _, block in ipairs(array) do
     local conf = block.config
 
-    if not conf.disableanimation then
-      Misc.updateAnimation(block)
-    end
+    animate.updateItem(block)
 
     conf.blockupdate(block, dt)
   end
